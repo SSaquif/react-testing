@@ -1,8 +1,14 @@
-# Jotto App Testsing
+# Jotto App Testing Part 1: Setup & Testing Props
 
-1. Will have a BE to send the words
+1. In this section we will set up everything
 
-2. So we can test receiving data from server
+2. We will also learn to test props
+
+## Resources
+
+1. [prop-types](https://www.npmjs.com/package/prop-types)
+
+2. [check-prop-types](https://www.npmjs.com/package/check-prop-types)
 
 ## Wireframes
 
@@ -20,6 +26,23 @@ I think this is a good app to do some wirefrmaing with figma
     <img height='400px' width='auto' src='./images/jotto-wf-3.png'/>
 </p>
 
+## setupTests.js
+
+1. This file is created by default by create-react-app
+
+2. We will add our enzyme setup our here
+
+3. So it will run before every test
+
+4. We move the following imports and function call in the setupTest.js file and can remove them from other test files. It's global now.
+
+```js
+import Enzyme from "enzyme";
+import EnzymeAdapter from "@wojtekmaj/enzyme-adapter-react-17";
+
+Enzyme.configure({ adapter: new EnzymeAdapter() });
+```
+
 ## Plan
 
 Order of testing
@@ -30,7 +53,7 @@ Order of testing
 4. We can either use Context or Redux for global state
 5. I will do both
 
-## Tetsing Part 1: `Congrats` and `GuessedWords`
+## `Congrats` and `GuessedWords`
 
 We will test these 2 components first
 
@@ -59,3 +82,132 @@ In these components we will start testing hooks
 
 2. App component: will get a secret word whenever the component mounts
    1. useEffect hook
+
+## Testing : Congrats Component
+
+1. See the component and test file
+
+2. They also have JSDoc in them
+
+3. Child of App
+
+4. Has access to `success`, a piece of state, passed down from App
+
+### plan
+
+1. Will receive success state as prop
+
+2. If succes state is true, then will render a congratulatory msg
+
+3. If false we will simpl return null
+
+### Setup
+
+```js
+// This function is how we set up our initial prop testing
+const setup = (props = {}) => {
+  // We pass the shallow component our props object
+  return shallow(<Congrats {...props} />);
+};
+
+test("renders without error", () => {});
+
+test("renders no text when `success` prop is false", () => {});
+
+test("renders non-empty congrats msg when `success` prop is true", () => {});
+
+test("", () => {});
+```
+
+### Final Tests
+
+1. Component
+
+   ```js
+   function Congrats({ success }) {
+     return (
+       <div data-test="congrats-component">
+         {success ? (
+           <span data-test="congrats-msg">You Guessed It!!</span>
+         ) : (
+           <></>
+         )}
+       </div>
+     );
+   }
+   ```
+
+2. Tests
+
+   ```js
+   const setup = (props = {}) => {
+     return shallow(<Congrats {...props} />);
+   };
+
+   test("renders without error", () => {
+     const wrapper = setup();
+     const component = findByTestAttr(wrapper, "congrats-component");
+     expect(component.length).toBe(1);
+   });
+
+   test("renders no text when `success` prop is false", () => {
+     const wrapper = setup({ success: false });
+     const component = findByTestAttr(wrapper, "congrats-component");
+     expect(component.text()).toBe(""); // React Fragment returned == Empty string
+   });
+
+   test("renders non-empty congrats msg when `success` prop is true", () => {
+     const wrapper = setup({ success: true });
+     const component = findByTestAttr(wrapper, "congrats-message");
+     expect(component.text().length).not.toBe(0);
+   });
+   ```
+
+## PropTypes Testing
+
+1. Not required if we are using TS
+
+2. If there are no proptypes, the proptypes test always passes
+
+3. So always check with some bad props, to make sure it does fail
+
+### Test
+
+1. Test, before putting it in the `testUtils`
+
+   ```js
+   test("does not throw warning with expected props", () => {
+     // No need to call setup() and create a shallowWrapper
+
+     const expectedProps = { success: false };
+
+     const propError = checkPropTypes(
+       Congrats.PropTypes, // Actual Props
+       expectedProps, // Expected Props (i.e some valid props)
+       "prop", // we are testing props
+       Congrats.name // Name of the component
+     );
+     // If Test Passes, no error msg so its undefined
+     expect(propError).toBeUndefined();
+   });
+   ```
+
+### Updated Congrats Component and Tests
+
+1. Need to import and create proptypes for the component
+
+2. The first test will also need to be updated by passing success prop now. Since it's required. Otherwise will get warning. But I setup default props to avoid it. See below for details
+
+   ```js
+   import PropTypes from "prop-types";
+
+   // ... Component Code
+
+   Congrats.propTypes = {
+     success: PropTypes.bool.isRequired,
+   };
+   ```
+
+3. Finally added a defaultProps object in the Test file. Can help with DRY. But also need to be careful and make sure I am not passing incorrect props by doing this.
+
+## Testing : GuessWords Component
