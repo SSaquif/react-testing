@@ -4,6 +4,8 @@
 
 2. We will also learn to test props
 
+3. [Code Repo](https://github.com/SSaquif/jotto/tree/master/src)
+
 ## Resources
 
 1. [prop-types](https://www.npmjs.com/package/prop-types)
@@ -93,7 +95,7 @@ In these components we will start testing hooks
 
 4. Has access to `success`, a piece of state, passed down from App
 
-### plan
+### Plan
 
 1. Will receive success state as prop
 
@@ -101,7 +103,7 @@ In these components we will start testing hooks
 
 3. If false we will simpl return null
 
-### Setup
+### Test Setup
 
 ```js
 // This function is how we set up our initial prop testing
@@ -211,3 +213,69 @@ test("", () => {});
 3. Finally added a defaultProps object in the Test file. Can help with DRY. But also need to be careful and make sure I am not passing incorrect props by doing this.
 
 ## Testing : GuessWords Component
+
+### Props
+
+| Props        | Data Type        | Description                                       | Initial Value |
+| ------------ | ---------------- | ------------------------------------------------- | ------------- |
+| guessedWords | Array of Objects | [{word: string, <br/>matchedLetterCount: number}] | []            |
+
+Guessed Words
+
+### PropType
+
+```js
+GuessedWords.propTypes = {
+  guessedWords: PropTypes.arrayOf(
+    PropTypes.shape({
+      GuessedWord: PropTypes.string.isRequired,
+      matchedLetterCount: PropTypes.number.isRequired,
+    })
+  ).isRequired,
+};
+```
+
+### Plan
+
+1. Check the wireframe to see what tests we need
+
+2. Initially has some text, and than changes to show past guesses
+
+3. This are sufficiently different contexts.
+
+4. And we will be doing enough test within each context, that its good idea to separate the test context using `describe`
+
+   ```js
+   describe("if no words guessed", () => {});
+
+   describe("if there are words guessed", () => {});
+   ```
+
+### Test Setup with describe and beforeEach
+
+1. We will be using the same shallow wrapper in both tests for the first tesing context so, its good idea to `set it up from scratch` before each test
+
+2. We want `wrapper` to be available in the entire scope
+
+```js
+describe("if no words guessed", () => {
+  let wrapper;
+  beforeEach(() => {
+    // Overwriting Default Props as we need empty array
+    wrapper = setup({ guessedWords: [] });
+  });
+  test("renders without error", () => {});
+  test("renders instruction to guess a word error", () => {});
+});
+
+describe("if there are words guessed", () => {
+  test("renders without error", () => {});
+  test('renders "guessed words" section', () => {});
+  test("displays correct number of guessed words");
+});
+```
+
+### Final Tests
+
+1. [Component](https://github.com/SSaquif/jotto/blob/master/src/GuessedWords.js)
+1. [Component Tests](https://github.com/SSaquif/jotto/blob/master/src/GuessedWords.test.js)
