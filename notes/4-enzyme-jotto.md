@@ -1,4 +1,4 @@
-# Jotto App Testing Part 1: Setup & Testing Props
+# Jotto App Testing
 
 1. In this section we will set up everything
 
@@ -85,7 +85,7 @@ In these components we will start testing hooks
 2. App component: will get a secret word whenever the component mounts
    1. useEffect hook
 
-## Testing : Congrats Component
+## Testing Part 1A: Congrats Component (Testing Props and Rendering)
 
 1. See the component and test file
 
@@ -95,7 +95,7 @@ In these components we will start testing hooks
 
 4. Has access to `success`, a piece of state, passed down from App
 
-### Plan
+### Test Plan
 
 1. Will receive success state as prop
 
@@ -212,7 +212,11 @@ test("", () => {});
 
 3. Finally added a defaultProps object in the Test file. Can help with DRY. But also need to be careful and make sure I am not passing incorrect props by doing this.
 
-## Testing : GuessWords Component
+## Testing Part 1B: GuessWords Component
+
+1. We learn to test a list of items, coming in from an array in this case
+
+2. We use `jest's describe() and beforeEach()` functions
 
 ### Props
 
@@ -279,3 +283,224 @@ describe("if there are words guessed", () => {
 
 1. [Component](https://github.com/SSaquif/jotto/blob/master/src/GuessedWords.js)
 1. [Component Tests](https://github.com/SSaquif/jotto/blob/master/src/GuessedWords.test.js)
+
+## Testing Part 2: Input Component (Testing State)
+
+1. We will test the `useState` Hook
+
+2. Learn how to `Mock the useState hook`
+
+### A word about Props and Global State
+
+1. Will take a `secretWord` prop, to compare with the `input`
+
+2. This will update `success` used in the `Congrats Component`
+
+3. So `success` will likely be a global/lifted state
+
+4. So for now we wont really do much with the 'secretWord' prop yet
+
+### Part 1: The Easy Bit
+
+1. Will test with furthur when we add Context/Redux
+
+2. We will do the usual `component rendering` and `prop checking` tests
+
+### Mock Function on Jests
+
+1. It's a `fake function` that runs instead of a rreal function
+
+2. Can run `alternate code` or just be `placeholder`
+
+3. `Jest` replaces the real function with a mock
+
+4. `Mocks` serves `3 purposes`
+
+   1. Keeps real function from running
+
+      1. This prevents side effects like network calls
+
+   2. Spy on function to see when it's called
+
+   3. Provide returns values
+
+      1. Helps set up test condtions, we will see this with `useState() mocks`
+
+### Method for Mocking Methods in Jest
+
+1. Reset properties on React module to replace with mocks(details later)
+
+2. This means: 'no destructuring on imports' in non-test code (see below)
+
+   ```js
+   // Can NOT do this anymore
+   import { useState } from "react";
+   const [state, setState] = useState();
+
+   // Gotta do this instead
+   const [state, setState] = React.useState();
+   ```
+
+3. So that really sucks, but there is a way around it apparently. (Explained later, see section Alternate Mocking)
+
+### Part 2: State & State Changes in Our App
+
+1. Create and Update `local state currentGuess` for our `wordInput` component, this is what we will test right now
+
+2. In the future:
+   1. Clear currentGuess on Submit
+   2. Update guessedWords (shared global state, Redux/Context part)
+   3. Check `currentGuess` against `secretWord`
+
+### Test Setup
+
+1. State updates om change
+
+2. Clearing State-controlled field on submit
+
+```js
+describe("state controlled input field", () => {
+  test("state ipdates with value of input box upon change", () => {});
+});
+```
+
+### useState Mock & Mock Events
+
+First here's the code for the test
+
+1. We use `jest.fn()` to mock functions
+
+2. We use Enzyme's ShallowWrappe's [simulate()](https://enzymejs.github.io/enzyme/docs/api/ShallowWrapper/simulate.html) method to simulate DOM events.
+
+3. See comments for further details
+
+4. We replace the useState and setCurrentGuess with our mocks
+
+5. `Important`: I am not a fan of this test. I left a [Question](https://www.udemy.com/course/react-testing-with-jest-and-enzyme/learn/lecture/25645648#questions/15370428) in the video explaining why? It's video 58 in section 5.
+
+```js
+describe("state controlled input field", () => {
+  test("state ipdates with value of input box upon change", () => {
+    // Mocking setState and useState functions
+    // the mock of setCurrentGuess will return nothing
+    const mockSetCurrentGuess = jest.fn();
+    React.useState = jest.fn(() => ["", mockSetCurrentGuess]);
+
+    // Getting my input box in a Shallow wrapper
+    const wrapper = setup();
+    const inputBox = findByTestAttr(wrapper, "input-box");
+
+    // Mocking a onChange event
+    // event.target.value is being changed to train
+    const mockEvent = { target: { value: "train" } };
+
+    inputBox.simulate("change", mockEvent);
+
+    // Finally we are saying
+    // once the onChange is simulate as per above code
+    // we expect the mockSetCurrentGuess to run
+    // with 'train' as input
+    expect(mockSetCurrentGuess).toHaveBeenCalledWith("train");
+  });
+});
+```
+
+### Alternate way of Mocking use state
+
+This what to do if you want to import your hooks. Need to cahnge the following lines
+
+```js
+const mockSetCurrentGuess = jest.fn();
+React.useState = jest.fn(() => ["", mockSetCurrentGuess]);
+```
+
+First we move `the mockSetCurrentGuess` to the global state
+
+Then we replace the second line and alos move that to the global scope as follows
+
+```js
+const mockSetCurrentGuess = jest.fn();
+// mock entire module to be able to destructure
+// Takes module name, and code to return in it's place
+jest.mock("react", () => {
+  return {
+    ...jest.requireActual("react"),
+    useState: (initailState) => [initailState, mockSetCurrentGuess],
+  };
+});
+```
+
+We are mocking the entire module using `jest.mock`. We are first mocking the actual `react` module as it is via the `requireActual()` function and then overwriting the useState function of the module only.
+
+This makes production code cleaner and test code maybe a bit more complicated
+
+### Issue: Multiple Pieces of State Within Same Component
+
+If I have multiple pieces of state within the same component, we can't write tests the way we have been.
+
+Two solutions to this:
+
+1. Option 1: Use `useReducer() instead`
+
+   1. Best solution if we want unit tests for component
+
+2. Option 2: Skip unit tests and go straight to functional tests
+
+   1. IMO seems like best thing to do after, the issues i mentioned with the test in previous section
+
+### Somee Additional Notes on Last Test
+
+So I updated the last test to simply check if the value in the input field got updated as expected. Instead of mocking useState. So this worked as expected, but it only works when useState has not been mocked already. Which makes sense
+
+But now the issue becomes what if I want both tests. I did find way around it but that does not let me use destrutured imports anymore.
+
+I left a [follow up question regarding this](https://www.udemy.com/course/react-testing-with-jest-and-enzyme/learn/lecture/25645656#questions/15370428)
+
+### Clearing Sate Controlled Field
+
+```js
+test("field i cleared aftr clicking submit", () => {
+  const mockSetCurrentGuess = jest.fn();
+  React.useState = jest.fn(() => ["", mockSetCurrentGuess]);
+
+  const wrapper = setup();
+  const submitButton = findByTestAttr(wrapper, "submit-button");
+
+  const mockedEvent = { preventDefault: () => {} };
+  submitButton.simulate("click", mockedEvent);
+  expect(mockSetCurrentGuess).toHaveBeenCalledWith("");
+});
+```
+
+### mockClear()
+
+1. We we learn more about why it's necessary later
+
+2. For now it doing it so are mock is not carrying results of the last test into the next one
+
+## Things I am opinionated about
+
+Why I think we should just do functional testing for react components
+
+In videos 58, 59 we mock the `setState (setCurrentGuess) functions` to be just `jest.fn()`
+
+But then test by simply checking if our mock is `called with the correct input`
+
+ie when we update or clear the field
+
+```js
+// When we type train
+expect(mockSetCurrentGuess).toHaveBeenCalledWith("train");
+// When we clear
+expect(mockSetCurrentGuess).toHaveBeenCalledWith("");
+```
+
+> Question: Why is "train" or "" the argument passed to the mock?
+
+> Answer: Don't know yet. Need to under the `[tohavenCalled()`](https://jestjs.io/docs/expect#tohavebeencalled) family of functions better
+
+This seems like poor tests, since we only check the input to the `useState()`. We are checking useState's implementation instead of app behaviour and I have pointed out in questions how this might breaking tests, ie causing false positive errors.
+
+### Notes on Mocks
+
+We ceasily mock and unmock Usestate for tests. See video 60, clearin state controlled field
