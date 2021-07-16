@@ -503,4 +503,108 @@ This seems like poor tests, since we only check the input to the `useState()`. W
 
 ### Notes on Mocks
 
-We ceasily mock and unmock Usestate for tests. See video 60, clearin state controlled field
+We easily mock and unmock Usestate for tests. See video 60, clearin state controlled field. See code for now
+
+### TODO in this section
+
+clean up everything, from now on I will write the notes at the end. It's slowing me down too much
+
+## Testing WordInput Render for 'success' as 'true' or 'false'
+
+So this component has 2 possible ways of rendered
+
+1. input box and button rendered if the user still needs to guess
+
+2. will be empty component otherwise otherwise
+
+3. So need to update our rendering tests
+
+4. Will probably be updating this tests once we add redux or context
+
+```js
+describe("render", () => {
+  // Word has been guessed
+  let wrapper;
+  describe("succes is true, word was guessed", () => {
+    beforeEach(() => {
+      wrapper = setup(true);
+    });
+
+    test("component renders without errors", () => {
+      const component = findByTestAttr(wrapper, "wordInput-component");
+      expect(component.length).toBe(1);
+    });
+
+    test("input box does not show", () => {
+      const inputBox = findByTestAttr(wrapper, "input-box");
+      expect(inputBox.exists()).toBe(false);
+    });
+
+    test("submit button does not show", () => {
+      const button = findByTestAttr(wrapper, "submit-button");
+      expect(button.exists()).toBe(false);
+    });
+  });
+
+  // Word has not been guessed
+  describe("succes is false, word was not guessed", () => {
+    beforeEach(() => {
+      wrapper = setup(false);
+    });
+
+    test("component renders without errors", () => {
+      const component = findByTestAttr(wrapper, "wordInput-component");
+      expect(component.length).toBe(1);
+    });
+
+    test("input box shows", () => {
+      const inputBox = findByTestAttr(wrapper, "input-box");
+      expect(inputBox.exists()).toBe(true);
+    });
+
+    test("submit shows", () => {
+      const button = findByTestAttr(wrapper, "submit-button");
+      expect(button.exists()).toBe(true);
+    });
+  });
+});
+```
+
+## Testing The Helper function (Non React Testing with JEST)
+
+1. Function that checks Number of letters matched between guessed word and secret word
+
+```js
+export function getLetterMatchCount(guessedWord, secretWord) {
+  const secretLetters = secretWord.split("");
+
+  // It's more efficient to use a set than another array
+  const guessedLetterSet = new Set(guessedWord);
+  console.log(guessedLetterSet);
+
+  let matchedArray = secretLetters.filter((letter) =>
+    guessedLetterSet.has(letter)
+  );
+
+  return matchedArray.length;
+}
+
+describe("getLetterMatchCount", () => {
+  const secretWord = "party";
+
+  test("returns correct count when no matching letters", () => {
+    const letterMatchCount = getLetterMatchCount("bones", secretWord);
+    expect(letterMatchCount).toBe(0);
+  });
+
+  test("returns correct count when 3 matching letters", () => {
+    const letterMatchCount = getLetterMatchCount("train", secretWord);
+    expect(letterMatchCount).toBe(3);
+  });
+
+  test("returns correct count when there's duplicate matching letters", () => {
+    const letterMatchCount = getLetterMatchCount("parka", secretWord);
+    expect(letterMatchCount).toBe(3);
+  });
+});
+```
